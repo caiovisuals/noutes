@@ -56,6 +56,13 @@ public class PageController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/pages/{pageId}/move")
+    public PageDto movePage(@PathVariable UUID pageId,
+                            @RequestBody MovePageRequest req,
+                            @AuthenticationPrincipal User user) {
+        return pageService.move(pageId, req, user);
+    }
+
     @GetMapping("/pages/{pageId}/access")
     public ResponseEntity<Void> checkAccess(@PathVariable UUID pageId,
                                             @AuthenticationPrincipal User user) {
@@ -70,4 +77,6 @@ public class PageController {
     ) {}
 
     public record UpdatePageRequest(String title, Boolean isPublic) {}
+
+    public record MovePageRequest(UUID parentPageId, UUID workspaceId) {}
 }

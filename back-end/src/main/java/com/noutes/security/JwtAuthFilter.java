@@ -1,5 +1,6 @@
 package com.noutes.security;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import lombok.RequiredArgsConstructor;
@@ -29,16 +30,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String token = header.substring(7);
-        String username = jwtService.extractUsername(token);
+        try {
+            String token = header.substring(7);
+            String username = jwtService.extractUsername(token);
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails user = userDetailsService.loadUserByUsername(username);
-            if (jwtService.isValid(token, user)) {
-                var auth = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
-                SecurityContextHolder.getContext().setAuthentication(auth);
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails user = userDetailsService.loadUserByUsername(username);
+                if (jwtService.isValid(token, user)) {
+                    var auth = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
             }
+        } catch (JwtException | UsernameNotFoundException ignored) {
+            // invalid/expired token — Spring Security will reject the request as unauthenticated
         }
 
         chain.doFilter(req, res);

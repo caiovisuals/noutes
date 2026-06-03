@@ -2,6 +2,7 @@ package com.noutes.config;
 
 import com.noutes.repository.UserRepository;
 import com.noutes.security.JwtAuthFilter;
+import com.noutes.security.RateLimitFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
@@ -23,6 +24,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final RateLimitFilter rateLimitFilter;
     private final UserRepository userRepository;
 
     @Value("${cors.allowed-origins}")
@@ -39,6 +41,7 @@ public class SecurityConfig {
                         .requestMatchers("/pages/*/public").permitAll()
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

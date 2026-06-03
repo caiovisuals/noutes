@@ -1,6 +1,8 @@
 package com.noutes.service;
 
-import com.noutes.controller.PageController.*;
+import com.noutes.controller.PageController.CreatePageRequest;
+import com.noutes.controller.PageController.MovePageRequest;
+import com.noutes.controller.PageController.UpdatePageRequest;
 import com.noutes.dto.PageDto;
 import com.noutes.entity.*;
 import com.noutes.repository.*;
@@ -84,6 +86,38 @@ public class PageService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
         pageRepository.delete(page);
+    }
+
+    @Transactional
+    public PageDto move(UUID pageId, MovePageRequest req, User user) {
+        Page page = getPageOrThrow(pageId);
+        if (!page.getWorkspace().getOwner().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
+        if (req.workspaceId() != null && !req.workspaceId().equals(page.getWorkspace().getId())) {
+            Workspace target = getWorkspaceOrThrow(req.workspaceId());
+            if (!target.getOwner().getId().equals(user.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+            }
+            page.setWorkspace(target);
+            page.setParentPage(null);
+        }
+
+        if (req.parentPageId() != null) {
+            if (req.parentPageId().equals(pageId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Page cannot be its own parent");
+            }
+            Page newParent = getPageOrThrow(req.parentPageId());
+            if (!newParent.getWorkspace().getId().equals(page.getWorkspace().getId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parent page must be in the same workspace");
+            }
+            page.setParentPage(newParent);
+        } else if (req.workspaceId() == null) {
+            page.setParentPage(null);
+        }
+
+        return PageDto.from(pageRepository.save(page));
     }
 
     public void checkAccess(UUID pageId, User user) {
